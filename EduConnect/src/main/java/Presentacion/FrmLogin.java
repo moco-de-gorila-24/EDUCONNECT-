@@ -169,7 +169,7 @@ public class FrmLogin extends JFrame {
             return;
         }
 
-        JOptionPane.showMessageDialog(this, "Inicio de sesión de prueba exitoso.");
+        JOptionPane.showMessageDialog(this, "Inicio de sesión exitoso.");
 
         FrmPrincipal principal = new FrmPrincipal(correo, tipoUsuario);
         principal.setVisible(true);

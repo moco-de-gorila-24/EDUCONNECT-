@@ -190,7 +190,7 @@ public class FrmRegistro extends JFrame {
             return;
         }
 
-        JOptionPane.showMessageDialog(this, "Registro de prueba realizado correctamente.\nTipo de usuario: " + tipoUsuario + "\n\nEn el siguiente avance se guardará la información en MongoDB.");
+        JOptionPane.showMessageDialog(this, "Registro realizado correctamente.\nTipo de usuario: " + tipoUsuario);
         regresarLogin();
     }
 
