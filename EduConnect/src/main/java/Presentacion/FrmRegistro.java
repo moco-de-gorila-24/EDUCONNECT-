@@ -160,37 +160,46 @@ public class FrmRegistro extends JFrame {
         String fecha = txtFechaNacimiento.getText().trim();
         String tipoUsuario = cmbTipoUsuario.getSelectedItem().toString();
 
-        if (nombre.isEmpty() || correo.isEmpty() || telefono.isEmpty() || contrasena.isEmpty() || fecha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.", "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+        if (nombre.isEmpty() || correo.isEmpty() || telefono.isEmpty()
+                || contrasena.isEmpty() || fecha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.",
+                    "Datos incompletos", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         if (nombre.length() < 3) {
             JOptionPane.showMessageDialog(this, "El nombre debe tener al menos 3 caracteres.");
             return;
         }
-
         if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
             JOptionPane.showMessageDialog(this, "Ingresa un correo electrónico válido.");
             return;
         }
-
         if (!telefono.matches("\\d{10}")) {
             JOptionPane.showMessageDialog(this, "El teléfono debe contener 10 dígitos.");
             return;
         }
-
         if (contrasena.length() < 8) {
             JOptionPane.showMessageDialog(this, "La contraseña debe tener al menos 8 caracteres.");
             return;
         }
-
         if (!validarFecha(fecha)) {
-            JOptionPane.showMessageDialog(this, "La fecha debe ser válida y tener el formato dd/MM/yyyy. No puede ser futura.");
+            JOptionPane.showMessageDialog(this,
+                    "La fecha debe ser válida (dd/MM/yyyy) y no puede ser futura.");
+            return;
+        }
+        if (DatosSistema.buscarUsuarioPorCorreo(correo) != null) {
+            JOptionPane.showMessageDialog(this,
+                    "Ya existe una cuenta con ese correo.",
+                    "Correo duplicado", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        JOptionPane.showMessageDialog(this, "Registro realizado correctamente.\nTipo de usuario: " + tipoUsuario);
+        DatosSistema.usuarios.add(new DatosSistema.Usuario(
+                nombre, correo, telefono,
+                DatosSistema.hashear(contrasena), fecha, tipoUsuario));
+
+        JOptionPane.showMessageDialog(this,
+                "Registro realizado correctamente.\nTipo de usuario: " + tipoUsuario);
         regresarLogin();
     }
 

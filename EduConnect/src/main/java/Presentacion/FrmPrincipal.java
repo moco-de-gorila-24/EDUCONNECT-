@@ -4,6 +4,7 @@
  */
 package Presentacion;
 
+import Interfaces.IRefrescable;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -11,6 +12,8 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -21,17 +24,23 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import Presentacion.Paneles.*;
 
 /**
+ * Ventana principal que muestra el menú y los paneles según el rol.
  *
  * @author Jorge
  */
 public class FrmPrincipal extends JFrame {
+
     private final String nombreUsuario;
     private final String tipoUsuario;
     private JPanel panelContenido;
     private CardLayout cardLayout;
     private JLabel lblNombreUsuario;
+    private PanelCursos panelCursos;
+
+    private final Map<String, JPanel> paneles = new HashMap<>();
 
     private final Color AZUL = new Color(31, 78, 121);
     private final Color FONDO = new Color(245, 247, 250);
@@ -55,7 +64,6 @@ public class FrmPrincipal extends JFrame {
 
         JPanel panelMenu = new JPanel();
         panelMenu.setLayout(new BoxLayout(panelMenu, BoxLayout.Y_AXIS));
-
         panelMenu.setBackground(AZUL);
         panelMenu.setPreferredSize(new Dimension(240, 750));
         panelMenu.setBorder(new EmptyBorder(25, 15, 20, 15));
@@ -79,26 +87,26 @@ public class FrmPrincipal extends JFrame {
         panelContenido = new JPanel(cardLayout);
         panelContenido.setBackground(FONDO);
 
-        agregarPanel("inicio", crearPanelInicio());
-
         if (tipoUsuario.equalsIgnoreCase("Estudiante")) {
-            agregarPanel("cursos", crearPanelSeccion("Cursos disponibles", "Consulta los cursos disponibles e inscríbete."));
-            agregarPanel("misCursos", crearPanelSeccion("Mis cursos", "Aquí aparecerán los cursos en los que estás inscrito."));
-            agregarPanel("actividades", crearPanelSeccion("Actividades", "Consulta y entrega tus actividades académicas."));
-            agregarPanel("calificaciones", crearPanelSeccion("Calificaciones", "Consulta tus calificaciones y observaciones."));
-            agregarPanel("historial", crearPanelSeccion("Historial académico", "Consulta tu historial de cursos y calificaciones."));
+            agregarPanel("inicio", new PanelInicioEstudiante());
+            panelCursos = new PanelCursos();
+            agregarPanel("cursos", panelCursos);
+            agregarPanel("actividades", new PanelActividades());
+            agregarPanel("calificaciones", new PanelCalificaciones());
+            agregarPanel("historial", new PanelHistorialAcademico());
 
             agregarBotonMenu(panelMenu, "Inicio", "inicio");
-            agregarBotonMenu(panelMenu, "Cursos disponibles", "cursos");
-            agregarBotonMenu(panelMenu, "Mis cursos", "misCursos");
+            agregarBotonMenu(panelMenu, "Cursos disponibles", "cursos_disponibles");
+            agregarBotonMenu(panelMenu, "Mis cursos", "cursos_inscritos");
             agregarBotonMenu(panelMenu, "Actividades", "actividades");
             agregarBotonMenu(panelMenu, "Calificaciones", "calificaciones");
             agregarBotonMenu(panelMenu, "Historial académico", "historial");
         } else {
-            agregarPanel("cursos", crearPanelSeccion("Gestionar cursos", "Crea, consulta, modifica y elimina tus cursos."));
-            agregarPanel("actividades", crearPanelSeccion("Gestionar actividades", "Registra y administra las actividades de tus cursos."));
-            agregarPanel("entregas", crearPanelSeccion("Revisar entregas", "Consulta las entregas y asigna calificaciones."));
-            agregarPanel("estadisticas", crearPanelSeccion("Estadísticas", "Consulta las estadísticas generales de tus cursos."));
+            agregarPanel("inicio", new PanelInicioProfesor());
+            agregarPanel("cursos", new PanelGestionCursos());
+            agregarPanel("actividades", new PanelGestionActividades());
+            agregarPanel("entregas", new PanelRevisarEntregas());
+            agregarPanel("estadisticas", new PanelEstadisticas());
 
             agregarBotonMenu(panelMenu, "Inicio", "inicio");
             agregarBotonMenu(panelMenu, "Gestionar cursos", "cursos");
@@ -136,7 +144,6 @@ public class FrmPrincipal extends JFrame {
         panelEncabezado.add(lblNombreUsuario, BorderLayout.EAST);
 
         JPanel panelCentral = new JPanel(new BorderLayout());
-
         panelCentral.setBackground(FONDO);
         panelCentral.add(panelEncabezado, BorderLayout.NORTH);
         panelCentral.add(panelContenido, BorderLayout.CENTER);
@@ -145,16 +152,16 @@ public class FrmPrincipal extends JFrame {
         panelPrincipal.add(panelCentral, BorderLayout.CENTER);
 
         setContentPane(panelPrincipal);
-        cardLayout.show(panelContenido, "inicio");
+        mostrarPanel("inicio");
     }
 
     private void agregarPanel(String nombre, JPanel panel) {
+        paneles.put(nombre, panel);
         panelContenido.add(panel, nombre);
     }
 
-    private void agregarBotonMenu(JPanel panelMenu, String texto, String nombrePanel) {
+    private void agregarBotonMenu(JPanel panelMenu, String texto, String accion) {
         JButton boton = new JButton(texto);
-
         boton.setFont(new Font("SansSerif", Font.PLAIN, 14));
         boton.setForeground(Color.WHITE);
         boton.setBackground(AZUL);
@@ -164,124 +171,38 @@ public class FrmPrincipal extends JFrame {
         boton.setBorderPainted(false);
         boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-
-        boton.addActionListener(e -> {
-            cardLayout.show(panelContenido, nombrePanel);
-        });
-
+        boton.addActionListener(e -> manejarAccionMenu(accion));
         panelMenu.add(boton);
         panelMenu.add(Box.createVerticalStrut(5));
     }
 
-    private JPanel crearPanelInicio() {
-        JPanel panel = new JPanel(new BorderLayout());
-
-        panel.setBackground(FONDO);
-        panel.setBorder(new EmptyBorder(35, 35, 35, 35));
-
-        JPanel panelContenidoInicio = new JPanel();
-
-        panelContenidoInicio.setLayout(new BoxLayout(panelContenidoInicio, BoxLayout.Y_AXIS));
-        panelContenidoInicio.setBackground(FONDO);
-
-        JLabel lblBienvenida = new JLabel("¡Bienvenido a EduConnect!");
-
-        lblBienvenida.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblBienvenida.setForeground(new Color(35, 45, 60));
-
-        JLabel lblDescripcion = new JLabel("Tu espacio para aprender y crecer.");
-
-        lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        lblDescripcion.setForeground(Color.GRAY);
-
-        panelContenidoInicio.add(lblBienvenida);
-        panelContenidoInicio.add(Box.createVerticalStrut(12));
-        panelContenidoInicio.add(lblDescripcion);
-        panelContenidoInicio.add(Box.createVerticalStrut(30));
-
-        if (tipoUsuario.equalsIgnoreCase("Estudiante")) {
-            panelContenidoInicio.add(crearTarjeta("Mis cursos", "Consulta tus cursos inscritos."));
-            panelContenidoInicio.add(Box.createVerticalStrut(15));
-            panelContenidoInicio.add(crearTarjeta("Actividades pendientes", "Revisa las actividades que debes entregar."));
-            panelContenidoInicio.add(Box.createVerticalStrut(15));
-            panelContenidoInicio.add(crearTarjeta("Calificaciones", "Consulta tus resultados académicos."));
-        } else {
-            panelContenidoInicio.add(crearTarjeta("Mis cursos", "Administra los cursos que has creado."));
-            panelContenidoInicio.add(Box.createVerticalStrut(15));
-            panelContenidoInicio.add(crearTarjeta("Actividades", "Registra y administra las actividades académicas."));
-            panelContenidoInicio.add(Box.createVerticalStrut(15));
-            panelContenidoInicio.add(crearTarjeta("Entregas", "Consulta los trabajos de tus estudiantes."));
+    private void manejarAccionMenu(String accion) {
+        switch (accion) {
+            case "cursos_disponibles" -> {
+                mostrarPanel("cursos");
+                if (panelCursos != null) panelCursos.mostrarPestania(0);
+            }
+            case "cursos_inscritos" -> {
+                mostrarPanel("cursos");
+                if (panelCursos != null) panelCursos.mostrarPestania(1);
+            }
+            default -> mostrarPanel(accion);
         }
-
-        panel.add(panelContenidoInicio, BorderLayout.NORTH);
-        return panel;
     }
 
-    private JPanel crearTarjeta(String titulo, String descripcion) {
-        JPanel tarjeta = new JPanel();
-        tarjeta.setLayout(new BoxLayout(tarjeta, BoxLayout.Y_AXIS));
-        tarjeta.setBackground(Color.WHITE);
-        tarjeta.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(225, 230, 235)), new EmptyBorder(20, 20, 20, 20)));
-        tarjeta.setAlignmentX(Component.LEFT_ALIGNMENT);
-        tarjeta.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-
-        JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 17));
-        lblTitulo.setForeground(AZUL);
-
-        JLabel lblDescripcion = new JLabel(descripcion);
-        lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        lblDescripcion.setForeground(new Color(100, 110, 125));
-
-        tarjeta.add(lblTitulo);
-        tarjeta.add(Box.createVerticalStrut(8));
-        tarjeta.add(lblDescripcion);
-
-        return tarjeta;
-    }
-
-    private JPanel crearPanelSeccion(String titulo, String descripcion) {
-        JPanel panel = new JPanel(new BorderLayout());
-
-        panel.setBackground(FONDO);
-        panel.setBorder(new EmptyBorder(35, 35, 35, 35));
-
-        JPanel panelSuperior = new JPanel();
-        panelSuperior.setLayout(new BoxLayout(panelSuperior, BoxLayout.Y_AXIS));
-        panelSuperior.setBackground(FONDO);
-
-        JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 27));
-        lblTitulo.setForeground(new Color(35, 45, 60));
-
-        JLabel lblDescripcion = new JLabel(descripcion);
-        lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        lblDescripcion.setForeground(Color.GRAY);
-
-        panelSuperior.add(lblTitulo);
-        panelSuperior.add(Box.createVerticalStrut(10));
-        panelSuperior.add(lblDescripcion);
-
-        JPanel panelContenidoSeccion = new JPanel(new BorderLayout());
-        panelContenidoSeccion.setBackground(Color.WHITE);
-        panelContenidoSeccion.setBorder(new EmptyBorder(25, 25, 25, 25));
-
-        JLabel lblMensaje = new JLabel("Esta sección está preparada para agregar sus componentes.");
-        lblMensaje.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        lblMensaje.setForeground(new Color(100, 110, 125));
-
-        panelContenidoSeccion.add(lblMensaje, BorderLayout.NORTH);
-
-        panel.add(panelSuperior, BorderLayout.NORTH);
-        panel.add(panelContenidoSeccion, BorderLayout.CENTER);
-
-        return panel;
+    private void mostrarPanel(String nombre) {
+        JPanel p = paneles.get(nombre);
+        if (p == null) return;
+        cardLayout.show(panelContenido, nombre);
+        if (p instanceof IRefrescable) ((IRefrescable) p).refrescar();
     }
 
     private void cerrarSesion() {
-        int opcion = JOptionPane.showConfirmDialog(this, "¿Deseas cerrar sesión?", "Cerrar sesión", JOptionPane.YES_NO_OPTION);
-
+        int opcion = JOptionPane.showConfirmDialog(this,
+                "¿Deseas cerrar sesión?", "Cerrar sesión",
+                JOptionPane.YES_NO_OPTION);
         if (opcion == JOptionPane.YES_OPTION) {
+            DatosSistema.usuarioActual = null;
             new FrmLogin().setVisible(true);
             dispose();
         }

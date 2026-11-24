@@ -155,24 +155,39 @@ public class FrmLogin extends JFrame {
         String tipoUsuario = cmbTipoUsuario.getSelectedItem().toString();
 
         if (correo.isEmpty() || contrasena.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Completa todos los campos.", "Campos obligatorios", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Completa todos los campos.",
+                    "Campos obligatorios", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            JOptionPane.showMessageDialog(this, "Ingresa un correo electrónico válido.", "Correo incorrecto", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Ingresa un correo electrónico válido.",
+                    "Correo incorrecto", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (contrasena.length() < 1) {
-            JOptionPane.showMessageDialog(this, "Ingresa tu contraseña.", "Contraseña incorrecta", JOptionPane.WARNING_MESSAGE);
+        DatosSistema.Usuario u = DatosSistema.buscarUsuarioPorCorreo(correo);
+        if (u == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No existe una cuenta con ese correo. Regístrate primero.",
+                    "Usuario no encontrado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!u.tipoUsuario.equalsIgnoreCase(tipoUsuario)) {
+            JOptionPane.showMessageDialog(this,
+                    "El tipo de usuario no coincide con la cuenta registrada.",
+                    "Tipo de usuario incorrecto", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!u.contrasenaHash.equals(DatosSistema.hashear(contrasena))) {
+            JOptionPane.showMessageDialog(this,
+                    "Contraseña incorrecta.", "Acceso denegado",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        DatosSistema.usuarioActual = u;
         JOptionPane.showMessageDialog(this, "Inicio de sesión exitoso.");
-
-        FrmPrincipal principal = new FrmPrincipal(correo, tipoUsuario);
-        principal.setVisible(true);
+        new FrmPrincipal(u.nombre, u.tipoUsuario).setVisible(true);
         dispose();
     }
 
