@@ -42,7 +42,7 @@ public class FrmLogin extends JFrame {
     private JComboBox<String> cmbTipoUsuario;
 
     public FrmLogin() {
-        setTitle("EduConnect - Iniciar sesión");
+        setTitle("EduConnect");
         setSize(900, 550);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -67,13 +67,13 @@ public class FrmLogin extends JFrame {
         lblLogo.setForeground(Color.WHITE);
         lblLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblTitulo = new JLabel("<html>Conecta con tu<br>futuro académico</html>");
+        JLabel lblTitulo = new JLabel("EduConnecta tu información academica!");
 
         lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 26));
         lblTitulo.setForeground(Color.WHITE);
         lblTitulo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblDescripcion = new JLabel("<html>Consulta tus cursos, entrega actividades y mantén un seguimiento de tu progreso académico.</html>");
+        JLabel lblDescripcion = new JLabel("Consulta tus cursos, entrega actividades y mantén un seguimiento de tu progreso académico.");
 
         lblDescripcion.setFont(new Font("SansSerif", Font.PLAIN, 15));
         lblDescripcion.setForeground(new Color(220, 230, 240));

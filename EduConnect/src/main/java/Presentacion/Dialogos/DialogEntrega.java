@@ -41,7 +41,7 @@ public class DialogEntrega extends JDialog {
     private final JRadioButton rbArchivo = new JRadioButton("Archivo");
     private final JRadioButton rbUrl = new JRadioButton("URL");
     private final JTextField txtContenido = new JTextField();
-    private final JButton btnExaminar = new JButton("Examinar...");
+    private final JButton btnExaminar = new JButton("Examinar");
     private boolean exitoso = false;
 
     public DialogEntrega(Dialog propietario, DatosSistema.Actividad actividad) {
