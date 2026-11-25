@@ -4,15 +4,24 @@
  */
 package Presentacion;
 
+import DAO.UsuarioDAO;
+import Entidades.TipoUsuario;
+import Entidades.Usuario;
+import Excepciones.DatosDuplicadosException;
+import Interfaces.IUsuarioDAO;
+import Utilidades.PasswordUtil;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.mongodb.MongoException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
+import java.util.Locale;
+import java.util.UUID;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -36,8 +45,9 @@ public class FrmRegistro extends JFrame {
     private JTextField txtCorreo;
     private JTextField txtTelefono;
     private JPasswordField txtContrasena;
-    private JTextField txtFechaNacimiento;
+    private DatePicker dateFechaNacimiento;
     private JComboBox<String> cmbTipoUsuario;
+    
 
     public FrmRegistro() {
         setTitle("EduConnect - Registro");
@@ -82,7 +92,8 @@ public class FrmRegistro extends JFrame {
         txtCorreo = new JTextField();
         txtTelefono = new JTextField();
         txtContrasena = new JPasswordField();
-        txtFechaNacimiento = new JTextField();
+        dateFechaNacimiento = new DatePicker();
+        dateFechaNacimiento.getSettings().setLocale(new Locale("es", "MX"));
 
         cmbTipoUsuario = new JComboBox<>(new String[]{"Estudiante", "Profesor"});
 
@@ -90,7 +101,7 @@ public class FrmRegistro extends JFrame {
         agregarCampo(panelFormulario, "Correo electrónico", txtCorreo);
         agregarCampo(panelFormulario, "Teléfono", txtTelefono);
         agregarCampo(panelFormulario, "Contraseña", txtContrasena);
-        agregarCampo(panelFormulario, "Fecha de nacimiento (dd/MM/yyyy)", txtFechaNacimiento);
+        agregarCampo(panelFormulario, "Fecha de nacimiento", dateFechaNacimiento);
         agregarCampo(panelFormulario, "Tipo de usuario", cmbTipoUsuario);
 
         JButton btnRegistrar = crearBoton("Registrar cuenta");
@@ -154,70 +165,67 @@ public class FrmRegistro extends JFrame {
 
     private void registrarUsuario() {
         String nombre = txtNombre.getText().trim();
-        String correo = txtCorreo.getText().trim();
+        String correo = txtCorreo.getText().trim().toLowerCase();
         String telefono = txtTelefono.getText().trim();
         String contrasena = new String(txtContrasena.getPassword());
-        String fecha = txtFechaNacimiento.getText().trim();
+        LocalDate fecha = dateFechaNacimiento.getDate();
         String tipoUsuario = cmbTipoUsuario.getSelectedItem().toString();
 
-        if (nombre.isEmpty() || correo.isEmpty() || telefono.isEmpty()
-                || contrasena.isEmpty() || fecha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.",
-                    "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+        if (nombre.isEmpty() || correo.isEmpty() || telefono.isEmpty() || contrasena.isEmpty() || fecha == null) {
+            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.");
             return;
         }
+
         if (nombre.length() < 3) {
             JOptionPane.showMessageDialog(this, "El nombre debe tener al menos 3 caracteres.");
             return;
         }
+
         if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            JOptionPane.showMessageDialog(this, "Ingresa un correo electrónico válido.");
+            JOptionPane.showMessageDialog(this, "Ingresa un correo válido.");
             return;
         }
+
         if (!telefono.matches("\\d{10}")) {
             JOptionPane.showMessageDialog(this, "El teléfono debe contener 10 dígitos.");
             return;
         }
+
         if (contrasena.length() < 8) {
             JOptionPane.showMessageDialog(this, "La contraseña debe tener al menos 8 caracteres.");
             return;
         }
+      
         if (!validarFecha(fecha)) {
-            JOptionPane.showMessageDialog(this,
-                    "La fecha debe ser válida (dd/MM/yyyy) y no puede ser futura.");
+            JOptionPane.showMessageDialog(this, "La fecha de nacimiento no es válida.");
             return;
         }
-        if (DatosSistema.buscarUsuarioPorCorreo(correo) != null) {
-            JOptionPane.showMessageDialog(this,
-                    "Ya existe una cuenta con ese correo.",
-                    "Correo duplicado", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        DatosSistema.usuarios.add(new DatosSistema.Usuario(
-                nombre, correo, telefono,
-                DatosSistema.hashear(contrasena), fecha, tipoUsuario));
-
-        JOptionPane.showMessageDialog(this,
-                "Registro realizado correctamente.\nTipo de usuario: " + tipoUsuario);
-        regresarLogin();
-    }
-
-    private boolean validarFecha(String fecha) {
-        SimpleDateFormat formato = new SimpleDateFormat("dd/MM/yyyy");
-        formato.setLenient(false);
 
         try {
-            Date fechaNacimiento = formato.parse(fecha);
-            if (!formato.format(fechaNacimiento).equals(fecha)) {
-                return false;
-            }
+            String passwordHash = PasswordUtil.hash(contrasena);
+            Usuario usuario = new Usuario(UUID.randomUUID().toString(), nombre, correo, telefono, passwordHash, fecha, TipoUsuario.valueOf(tipoUsuario.toUpperCase()), true);
+            IUsuarioDAO usuarioDAO = new UsuarioDAO();
+            boolean registrado = usuarioDAO.registrar(usuario);
 
-            Date fechaActual = new Date();
-            return !fechaNacimiento.after(fechaActual);
-        } catch (ParseException e) {
+            if (registrado) {
+                JOptionPane.showMessageDialog(this, "Usuario registrado correctamente.");
+                regresarLogin();
+            }
+        } catch (DatosDuplicadosException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Correo duplicado", JOptionPane.WARNING_MESSAGE);
+        } catch (MongoException e) {
+            JOptionPane.showMessageDialog(this, "No fue posible conectar con MongoDB.\nVerifica que el servidor esté iniciado.", "Error de persistencia", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Ocurrió un error al registrar el usuario.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private boolean validarFecha(LocalDate fecha) {
+        if (fecha == null) {
             return false;
         }
+
+        return !fecha.isAfter(LocalDate.now());
     }
 
     private void regresarLogin() {

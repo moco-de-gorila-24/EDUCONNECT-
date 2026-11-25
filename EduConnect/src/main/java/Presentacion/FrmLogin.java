@@ -4,12 +4,20 @@
  */
 package Presentacion;
 
+import DAO.UsuarioDAO;
+import Entidades.TipoUsuario;
+import Entidades.Usuario;
+import Interfaces.IUsuarioDAO;
+import Utilidades.PasswordUtil;
+import com.mongodb.MongoException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -150,45 +158,54 @@ public class FrmLogin extends JFrame {
     }
 
     private void iniciarSesion() {
-        String correo = txtCorreo.getText().trim();
+        String correo = txtCorreo.getText().trim().toLowerCase();
         String contrasena = new String(txtContrasena.getPassword());
         String tipoUsuario = cmbTipoUsuario.getSelectedItem().toString();
 
         if (correo.isEmpty() || contrasena.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Completa todos los campos.",
-                    "Campos obligatorios", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Completa todos los campos.");
+
             return;
         }
+
         if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            JOptionPane.showMessageDialog(this, "Ingresa un correo electrónico válido.",
-                    "Correo incorrecto", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Ingresa un correo válido.");
+
             return;
         }
 
-        DatosSistema.Usuario u = DatosSistema.buscarUsuarioPorCorreo(correo);
-        if (u == null) {
-            JOptionPane.showMessageDialog(this,
-                    "No existe una cuenta con ese correo. Regístrate primero.",
-                    "Usuario no encontrado", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        if (!u.tipoUsuario.equalsIgnoreCase(tipoUsuario)) {
-            JOptionPane.showMessageDialog(this,
-                    "El tipo de usuario no coincide con la cuenta registrada.",
-                    "Tipo de usuario incorrecto", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        if (!u.contrasenaHash.equals(DatosSistema.hashear(contrasena))) {
-            JOptionPane.showMessageDialog(this,
-                    "Contraseña incorrecta.", "Acceso denegado",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        try {
+            IUsuarioDAO usuarioDAO = new UsuarioDAO();
+            Optional<Usuario> resultado = usuarioDAO.buscarPorCorreo(correo);
 
-        DatosSistema.usuarioActual = u;
-        JOptionPane.showMessageDialog(this, "Inicio de sesión exitoso.");
-        new FrmPrincipal(u.nombre, u.tipoUsuario).setVisible(true);
-        dispose();
+            if (resultado.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No existe una cuenta con ese correo.");
+
+                return;
+            }
+
+            Usuario usuario = resultado.get();
+
+            if (usuario.getTipoUsuario() != TipoUsuario.valueOf(tipoUsuario.toUpperCase())) {
+                JOptionPane.showMessageDialog(this, "El tipo de usuario no coincide.");
+
+                return;
+            }
+
+            if (!PasswordUtil.verificar(contrasena, usuario.getPasswordHash())) {
+                JOptionPane.showMessageDialog(this, "Contraseña incorrecta.");
+
+                return;
+            }
+
+            DatosSistema.usuarioActual = new DatosSistema.Usuario(usuario.getNombre(), usuario.getCorreo(), usuario.getTelefono(), usuario.getPasswordHash(), usuario.getFechaNacimiento().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), usuario.getTipoUsuario().name());
+            JOptionPane.showMessageDialog(this, "Inicio de sesión exitoso.");
+            new FrmPrincipal(usuario.getNombre(), usuario.getTipoUsuario().name()).setVisible(true);
+
+            dispose();
+        } catch (MongoException e) {
+            JOptionPane.showMessageDialog(this, "No fue posible conectar con MongoDB.\nVerifica que el servidor esté iniciado.", "Error de conexión", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JLabel crearEtiqueta(String texto) {
