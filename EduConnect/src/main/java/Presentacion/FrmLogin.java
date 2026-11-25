@@ -225,10 +225,4 @@ public class FrmLogin extends JFrame {
         boton.setPreferredSize(new Dimension(300, 45));
         return boton;
     }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new FrmLogin().setVisible(true);
-        });
-    }
 }
